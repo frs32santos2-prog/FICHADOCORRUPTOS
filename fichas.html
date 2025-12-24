@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Fichas de RPG</title>
+
+<style>
+body{
+  background:#7c747a;
+  font-family:Georgia,serif;
+  padding:20px;
+}
+
+.topbar{
+  display:flex;
+  gap:10px;
+  margin-bottom:15px;
+}
+
+button,select{
+  padding:8px 12px;
+  font-size:14px;
+  cursor:pointer;
+}
+
+.sheet{
+  max-width:1300px;
+  margin:auto;
+  background:#bdb6bb;
+  padding:25px;
+  display:grid;
+  grid-template-columns:3fr 1.4fr;
+  gap:25px;
+  border:4px solid #2b2b2b;
+}
+
+h2{
+  font-size:22px;
+  border-bottom:2px solid #2b2b2b;
+}
+
+input,textarea{
+  width:100%;
+  background:#f0ecef;
+  border:1px solid #2b2b2b;
+  padding:8px;
+  font-size:15px;
+}
+
+textarea{ min-height:160px; }
+
+.row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.block{ margin-bottom:20px; }
+
+/* ===== Retrato ===== */
+.portrait{
+  position:relative;
+  height:300px;
+  border:2px solid #2b2b2b;
+  background:#999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+}
+
+.portrait img{
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  cursor:pointer;
+}
+
+.placeholder{
+  color:#333;
+  font-size:14px;
+  pointer-events:none;
+}
+
+.img-btn{
+  position:absolute;
+  bottom:8px;
+  right:8px;
+  padding:6px 10px;
+  font-size:13px;
+}
+
+/* ===== Atributos ===== */
+.attrs div{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:6px;
+}
+
+.attrs input{
+  width:60px;
+  text-align:center;
+}
+
+.log{
+  background:#dcd7db;
+  border:2px solid #2b2b2b;
+  padding:10px;
+  max-height:160px;
+  overflow-y:auto;
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <button onclick="novaFicha()">Nova Ficha</button>
+  <button onclick="salvarFicha()">Salvar</button>
+  <select id="lista" onchange="carregarFicha()"></select>
+  <button onclick="rolar()">Rolar Dado</button>
+</div>
+
+<div class="sheet">
+
+  <!-- COLUNA ESQUERDA -->
+  <div>
+    <div class="row block">
+      <input id="nome" placeholder="Nome">
+      <input id="idade" placeholder="Idade">
+    </div>
+
+    <div class="row block">
+      <input id="profissao" placeholder="Profissão">
+      <input id="altura" placeholder="Altura">
+    </div>
+
+    <div class="block">
+      <h2>História</h2>
+      <textarea id="historia"></textarea>
+    </div>
+
+    <div class="block">
+      <h2>Dia do Apocalipse</h2>
+      <textarea id="apocalipse"></textarea>
+    </div>
+
+    <div class="block">
+      <h2>Habilidades</h2>
+      <textarea id="habilidades"></textarea>
+    </div>
+  </div>
+
+  <!-- COLUNA DIREITA -->
+  <div>
+
+    <div class="portrait">
+      <span id="placeholder" class="placeholder">Clique para adicionar imagem</span>
+      <img id="img" onclick="abrirImagem()">
+      <button id="imgBtn" class="img-btn" onclick="abrirImagem()">Selecionar imagem</button>
+      <input id="fileImg" type="file" accept="image/*" onchange="carregarImagem(event)" hidden>
+    </div>
+
+    <div class="block">
+      <h2>Atributos</h2>
+      <div class="attrs">
+        <div>FOR <input id="FOR"></div>
+        <div>AGI <input id="AGI"></div>
+        <div>CON <input id="CON"></div>
+        <div>INT <input id="INT"></div>
+        <div>PER <input id="PER"></div>
+        <div>CAR <input id="CAR"></div>
+        <div>SOB <input id="SOB"></div>
+        <div>TEC <input id="TEC"></div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>Histórico de Rolagens</h2>
+      <div id="log" class="log"></div>
+    </div>
+
+    <div class="block">
+      <h2>Equipamento</h2>
+      <textarea id="equip"></textarea>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let fichas = JSON.parse(localStorage.getItem('fichas')) || {};
+
+function atualizarLista(){
+  lista.innerHTML='<option value="">-- fichas --</option>';
+  Object.keys(fichas).forEach(n=>{
+    let o=document.createElement('option');
+    o.value=o.text=n;
+    lista.appendChild(o);
+  });
+}
+
+function dados(){
+  return {
+    nome:nome.value, idade:idade.value,
+    profissao:profissao.value, altura:altura.value,
+    historia:historia.value, apocalipse:apocalipse.value,
+    habilidades:habilidades.value, equip:equip.value,
+    attrs:{FOR:FOR.value,AGI:AGI.value,CON:CON.value,INT:INT.value,PER:PER.value,CAR:CAR.value,SOB:SOB.value,TEC:TEC.value},
+    img:img.src, log:log.innerHTML
+  };
+}
+
+function salvarFicha(){
+  if(!nome.value) return alert('Nome obrigatório');
+  fichas[nome.value]=dados();
+  localStorage.setItem('fichas',JSON.stringify(fichas));
+  atualizarLista();
+  alert('Ficha salva');
+}
+
+function carregarFicha(){
+  let f=fichas[lista.value]; if(!f) return;
+  nome.value=f.nome; idade.value=f.idade;
+  profissao.value=f.profissao; altura.value=f.altura;
+  historia.value=f.historia; apocalipse.value=f.apocalipse;
+  habilidades.value=f.habilidades; equip.value=f.equip;
+  Object.keys(f.attrs).forEach(a=>document.getElementById(a).value=f.attrs[a]);
+
+  img.src=f.img||'';
+  let temImagem = !!f.img;
+  placeholder.style.display = temImagem ? 'none' : 'block';
+  imgBtn.style.display = temImagem ? 'none' : 'block';
+
+  log.innerHTML=f.log||'';
+}
+
+function novaFicha(){
+  document.querySelectorAll('input,textarea').forEach(e=>e.value='');
+  img.src='';
+  placeholder.style.display='block';
+  imgBtn.style.display='block';
+  log.innerHTML='';
+}
+
+function abrirImagem(){
+  fileImg.click();
+}
+
+function carregarImagem(e){
+  let r=new FileReader();
+  r.onload=()=>{
+    img.src=r.result;
+    placeholder.style.display='none';
+    imgBtn.style.display='none';
+  }
+  r.readAsDataURL(e.target.files[0]);
+}
+
+/* ===== ROLAGEM (MENOR É MELHOR) ===== */
+function rolar(){
+  let entrada = prompt('Ex: d20, d20 FOR, 2d6 AGI');
+  if(!entrada) return;
+
+  let partes = entrada.trim().split(' ');
+  let dado = partes[0];
+  let atributo = partes[1];
+
+  let total = 0;
+
+  dado.replace(/\s+/g,'').split('+').forEach(p=>{
+    if(p.includes('d')){
+      let [n,l]=p.split('d');
+      n = parseInt(n) || 1;
+      l = parseInt(l);
+      for(let i=0;i<n;i++){
+        total += Math.floor(Math.random()*l) + 1;
+      }
+    } else total += parseInt(p) || 0;
+  });
+
+  let atributoValor = 0;
+  if(atributo){
+    atributo = atributo.toUpperCase();
+    let campo = document.getElementById(atributo);
+    if(campo){
+      atributoValor = parseInt(campo.value) || 0;
+      total -= atributoValor;
+    }
+  }
+
+  let texto = `${entrada} → resultado: ${total}`;
+  if(atributoValor) texto += ` (−${atributoValor} ${atributo})`;
+
+  let div = document.createElement('div');
+  div.textContent = texto;
+  log.prepend(div);
+
+  alert('Resultado final: ' + total);
+}
+
+atualizarLista();
+</script>
+
+</body>
+</html>
